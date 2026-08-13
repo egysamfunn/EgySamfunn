@@ -41,17 +41,83 @@ module.exports = async (req, res) => {
     const session = event.data.object;
     const registration = session.metadata;
 
-    // -------------------------------------------------------------
-    // هنا المكان المناسب إنك تحفظ بيانات التسجيل عندك بشكل دائم، مثلاً:
-    // - إرسال إيميل تأكيد للمسجّل (عبر Resend / SendGrid / Nodemailer)
-    // - حفظ البيانات في Google Sheet أو قاعدة بيانات (Airtable, Supabase, إلخ)
-    // - إرسال إشعار لفريق التنظيم على واتساب/تليجرام
-    //
-    // مبدئيًا، البيانات محفوظة أصلاً داخل Stripe Dashboard > Payments
-    // (لأننا حفظناها كـ metadata وقت إنشاء الـ Checkout Session)
-    // -------------------------------------------------------------
     console.log("✅ Payment confirmed for:", registration.member1_name, registration.member1_email);
+
+    // -------------------------------------------------------------
+    // إرسال إيميل تأكيد للمسجّل عبر Resend
+    // لو لسه معملتش حساب Resend أو مضفتش RESEND_API_KEY، السطر ده هيفشل بهدوء
+    // ويسجل الخطأ في الـ Logs من غير ما يوقف باقي العملية
+    // -------------------------------------------------------------
+    try {
+      await sendConfirmationEmail(registration, session.amount_total);
+    } catch (err) {
+      console.error("Failed to send confirmation email:", err.message);
+    }
   }
 
   return res.status(200).json({ received: true });
 };
+
+async function sendConfirmationEmail(registration, amountTotal) {
+  if (!process.env.BREVO_API_KEY) {
+    console.log("BREVO_API_KEY مش موجود — تم تخطي إرسال الإيميل.");
+    return;
+  }
+
+  const amountKr = (amountTotal / 100).toFixed(0);
+  const registrationTypeLabel = registration.registrationType === "family" ? "عائلي" : "فردي";
+
+  const namesLine = registration.registrationType === "family" && registration.member2_name
+    ? `${registration.member1_name} و ${registration.member2_name}`
+    : registration.member1_name;
+
+  const emailHtml = `
+    <div style="font-family: Arial, sans-serif; direction: rtl; text-align: right; max-width: 480px; margin: 0 auto; padding: 24px; color: #2B2118;">
+      <h2 style="color: #0A4F42;">تم تأكيد تسجيلكم 🎉</h2>
+      <p>أهلاً ${registration.member1_name}،</p>
+      <p>تم تأكيد دفعكم بنجاح لتجمع أغسطس الصيفي — المجتمع المصري في النرويج.</p>
+      <table style="width: 100%; border-collapse: collapse; margin: 20px 0;">
+        <tr>
+          <td style="padding: 8px 0; color: #5A4C3C;">الاسم/الأسماء</td>
+          <td style="padding: 8px 0; font-weight: bold;">${namesLine}</td>
+        </tr>
+        <tr>
+          <td style="padding: 8px 0; color: #5A4C3C;">نوع التسجيل</td>
+          <td style="padding: 8px 0; font-weight: bold;">${registrationTypeLabel}</td>
+        </tr>
+        <tr>
+          <td style="padding: 8px 0; color: #5A4C3C;">المبلغ المدفوع</td>
+          <td style="padding: 8px 0; font-weight: bold;">${amountKr} kr</td>
+        </tr>
+      </table>
+      <p>هنبعتلكم تفاصيل التجمع (المكان والموعد بالظبط) قريبًا.</p>
+      <p style="margin-top: 24px; color: #5A4C3C; font-size: 13px;">EGYSAMFUNN — المجتمع المصري في النرويج</p>
+    </div>
+  `;
+
+  // Brevo بتاخد اسم وإيميل المرسل في حقلين منفصلين (مش سطر واحد زي Resend)
+  const fromEmail = process.env.FROM_EMAIL || "noreply@egysamfunn.no";
+  const fromName = process.env.FROM_NAME || "EGYSAMFUNN";
+
+  const response = await fetch("https://api.brevo.com/v3/smtp/email", {
+    method: "POST",
+    headers: {
+      "api-key": process.env.BREVO_API_KEY,
+      "Content-Type": "application/json",
+      "Accept": "application/json"
+    },
+    body: JSON.stringify({
+      sender: { name: fromName, email: fromEmail },
+      to: [{ email: registration.member1_email, name: registration.member1_name }],
+      subject: "تم تأكيد تسجيلكم — تجمع أغسطس الصيفي",
+      htmlContent: emailHtml
+    })
+  });
+
+  if (!response.ok) {
+    const errorBody = await response.text();
+    throw new Error(`Brevo API error: ${response.status} ${errorBody}`);
+  }
+
+  console.log("✅ Confirmation email sent to:", registration.member1_email);
+}
