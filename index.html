@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>تسجيل تجمع عيد الأضحي — المجتمع المصري في النرويج</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800&family=Amiri:wght@400;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css" />
+</head>
+<body>
+
+<div class="page">
+  <header class="hero">
+    <div class="hero__motif" aria-hidden="true">
+      <svg viewBox="0 0 200 60" class="motif-svg">
+        <circle cx="30" cy="14" r="8" class="motif-sun"/>
+        <path d="M0 50 L50 10 L75 50 Z" class="motif-pyramid"/>
+        <path d="M60 50 L100 5 L130 50 Z" class="motif-pyramid motif-pyramid--mid"/>
+        <path d="M115 50 L155 15 L180 50 Z" class="motif-pyramid motif-pyramid--back"/>
+        <line x1="0" y1="50" x2="200" y2="50" class="motif-ground"/>
+      </svg>
+    </div>
+    <p class="hero__eyebrow">EGYSAMFUNN — المجتمع المصري في النرويج</p>
+    <h1 class="hero__title">تسجيل تجمع عيد الأضحي</h1>
+    <p class="hero__subtitle">سجّل بياناتك وأتمم الاشتراك بأمان عبر Stripe</p>
+  </header>
+
+  <form id="regForm" class="card" novalidate>
+
+    <fieldset class="section">
+      <legend class="section__title">نوع التسجيل</legend>
+
+      <label class="field">
+        <span class="field__label">هل أنت عضو في الجمعية لعام 2026؟ <em>*</em></span>
+        <select name="isMember" id="isMember" required>
+          <option value="" disabled selected>اختر</option>
+          <option value="yes">نعم</option>
+          <option value="no">لا</option>
+        </select>
+      </label>
+
+      <label class="field">
+        <span class="field__label">اختر نوع التسجيل الذي يناسبك <em>*</em></span>
+        <select name="registrationType" id="registrationType" required>
+          <option value="" disabled selected>اختر</option>
+          <option value="individual">فردي</option>
+          <option value="family">عائلي (فردين)</option>
+        </select>
+      </label>
+    </fieldset>
+
+    <fieldset class="section">
+      <legend class="section__title">بيانات العضو الأول</legend>
+
+      <label class="field">
+        <span class="field__label">اسم العضو <em>*</em></span>
+        <input type="text" name="member1_name" required autocomplete="name" />
+      </label>
+
+      <label class="field">
+        <span class="field__label">الجنس <em>*</em></span>
+        <select name="member1_gender" required>
+          <option value="" disabled selected>اختر</option>
+          <option value="male">ذكر</option>
+          <option value="female">أنثى</option>
+        </select>
+      </label>
+
+      <label class="field">
+        <span class="field__label">البريد الإلكتروني <em>*</em></span>
+        <input type="email" name="member1_email" required autocomplete="email" />
+      </label>
+
+      <label class="field">
+        <span class="field__label">رقم الهاتف <em>*</em></span>
+        <input type="tel" name="member1_phone" required autocomplete="tel" placeholder="+47..." />
+      </label>
+    </fieldset>
+
+    <fieldset class="section" id="member2Section" hidden>
+      <legend class="section__title">بيانات العضو الثاني</legend>
+
+      <label class="field">
+        <span class="field__label">اسم العضو الثاني <em>*</em></span>
+        <input type="text" name="member2_name" autocomplete="name" />
+      </label>
+
+      <label class="field">
+        <span class="field__label">الجنس <em>*</em></span>
+        <select name="member2_gender">
+          <option value="" disabled selected>اختر</option>
+          <option value="male">ذكر</option>
+          <option value="female">أنثى</option>
+        </select>
+      </label>
+
+      <label class="field">
+        <span class="field__label">البريد الإلكتروني <em>*</em></span>
+        <input type="email" name="member2_email" autocomplete="email" />
+      </label>
+
+      <label class="field">
+        <span class="field__label">رقم الهاتف <em>*</em></span>
+        <input type="tel" name="member2_phone" autocomplete="tel" placeholder="+47..." />
+      </label>
+    </fieldset>
+
+    <fieldset class="section">
+      <legend class="section__title">تفاصيل إضافية</legend>
+
+      <label class="field">
+        <span class="field__label">هل سيتم اصطحاب أبناء تحت 16 سنة؟ <em>*</em></span>
+        <select name="hasKidsUnder16" id="hasKidsUnder16" required>
+          <option value="" disabled selected>اختر</option>
+          <option value="no">لا</option>
+          <option value="yes">نعم</option>
+        </select>
+        <span class="field__hint">الأولاد فوق 16 سنة يتم تسجيلهم في استمارة منفصلة</span>
+      </label>
+
+      <label class="field" id="kidsCountField" hidden>
+        <span class="field__label">عدد الأطفال تحت 16 سنة</span>
+        <input type="number" name="kidsCount" min="0" max="10" value="0" />
+      </label>
+    </fieldset>
+
+    <fieldset class="section">
+      <legend class="section__title">الشروط والأحكام</legend>
+      <div class="terms-box">
+        أرغب في المشاركة في تجمع حفل الأضحي مع جمعية المجتمع المصري في النرويج.
+        أتعهد بأن ألتزم بمبادئ وقوانين وأعراف الجمعية.
+        التسجيل مرتبط بدفع رسوم الاشتراك و المبلغ غير قابل للاسترداد.
+      </div>
+      <label class="checkbox">
+        <input type="checkbox" name="agreeTerms" id="agreeTerms" required />
+        <span>موافق على كل الشروط والقوانين السابقة وأرغب في الانضمام <em>*</em></span>
+      </label>
+    </fieldset>
+
+    <fieldset class="section section--payment">
+      <legend class="section__title">الدفع</legend>
+      <div class="price-row">
+        <span>المبلغ المستحق</span>
+        <strong id="priceDisplay">0 kr</strong>
+      </div>
+      <p class="price-note" id="priceBreakdown"></p>
+    </fieldset>
+
+    <p class="error" id="formError" role="alert" hidden></p>
+
+    <button type="submit" class="submit-btn" id="submitBtn">
+      <span id="submitBtnText">المتابعة إلى الدفع</span>
+    </button>
+  </form>
+
+  <footer class="footer">
+    <p>الدفع الآمن عبر Stripe · EGYSAMFUNN</p>
+  </footer>
+</div>
+
+<script src="config.js"></script>
+<script src="script.js"></script>
+</body>
+</html>
