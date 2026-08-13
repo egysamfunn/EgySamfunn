@@ -59,8 +59,8 @@ module.exports = async (req, res) => {
 };
 
 async function sendConfirmationEmail(registration, amountTotal) {
-  if (!process.env.BREVO_API_KEY) {
-    console.log("BREVO_API_KEY مش موجود — تم تخطي إرسال الإيميل.");
+  if (!process.env.RESEND_API_KEY) {
+    console.log("RESEND_API_KEY مش موجود — تم تخطي إرسال الإيميل.");
     return;
   }
 
@@ -95,28 +95,23 @@ async function sendConfirmationEmail(registration, amountTotal) {
     </div>
   `;
 
-  // Brevo بتاخد اسم وإيميل المرسل في حقلين منفصلين (مش سطر واحد زي Resend)
-  const fromEmail = process.env.FROM_EMAIL || "noreply@egysamfunn.no";
-  const fromName = process.env.FROM_NAME || "EGYSAMFUNN";
-
-  const response = await fetch("https://api.brevo.com/v3/smtp/email", {
+  const response = await fetch("https://api.resend.com/emails", {
     method: "POST",
     headers: {
-      "api-key": process.env.BREVO_API_KEY,
-      "Content-Type": "application/json",
-      "Accept": "application/json"
+      "Authorization": `Bearer ${process.env.RESEND_API_KEY}`,
+      "Content-Type": "application/json"
     },
     body: JSON.stringify({
-      sender: { name: fromName, email: fromEmail },
-      to: [{ email: registration.member1_email, name: registration.member1_name }],
+      from: process.env.FROM_EMAIL || "EGYSAMFUNN <onboarding@resend.dev>",
+      to: registration.member1_email,
       subject: "تم تأكيد تسجيلكم — تجمع أغسطس الصيفي",
-      htmlContent: emailHtml
+      html: emailHtml
     })
   });
 
   if (!response.ok) {
     const errorBody = await response.text();
-    throw new Error(`Brevo API error: ${response.status} ${errorBody}`);
+    throw new Error(`Resend API error: ${response.status} ${errorBody}`);
   }
 
   console.log("✅ Confirmation email sent to:", registration.member1_email);
