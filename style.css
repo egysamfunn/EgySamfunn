@@ -43,18 +43,17 @@ body {
   overflow: hidden;
 }
 
-.hero__motif {
-  position: absolute;
-  inset: 0;
-  opacity: 0.18;
+.hero__logo {
+  width: 128px;
+  height: 128px;
+  border-radius: 50%;
+  object-fit: cover;
+  background: #fff;
+  box-shadow: 0 0 0 4px rgba(255, 255, 255, 0.6), 0 10px 24px rgba(0, 0, 0, 0.18);
+  margin: 0 auto 16px;
+  display: block;
+  position: relative;
 }
-
-.motif-svg { width: 100%; height: 100%; }
-.motif-sun { fill: var(--gold-bright); }
-.motif-pyramid { fill: #fff8ea; }
-.motif-pyramid--mid { fill: #fff8ea; opacity: 0.85; }
-.motif-pyramid--back { fill: #fff8ea; opacity: 0.6; }
-.motif-ground { stroke: #fff8ea; stroke-width: 1; }
 
 .hero__eyebrow {
   position: relative;
