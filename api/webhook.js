@@ -4,7 +4,18 @@
 // وتحط الـ Signing secret بتاعه في متغير البيئة STRIPE_WEBHOOK_SECRET
 
 const Stripe = require("stripe");
+const admin = require("firebase-admin");
+
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
+
+// تهيئة Firebase Admin مرة واحدة بس (Vercel ممكن يعيد استخدام نفس الـ container بين الطلبات)
+if (!admin.apps.length && process.env.FIREBASE_SERVICE_ACCOUNT_KEY) {
+  admin.initializeApp({
+    credential: admin.credential.cert(
+      JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT_KEY)
+    )
+  });
+}
 
 // لازم نمنع Vercel من عمل parse للـ body تلقائي، عشان نتحقق من التوقيع (signature) بشكل صحيح
 module.exports.config = {
@@ -44,6 +55,16 @@ module.exports = async (req, res) => {
     console.log("✅ Payment confirmed for:", registration.member1_name, registration.member1_email);
 
     // -------------------------------------------------------------
+    // حفظ بيانات التسجيل في Firestore — ده المصدر الدائم والموثوق
+    // للبيانات (بدل الاعتماد بس على Stripe Dashboard)
+    // -------------------------------------------------------------
+    try {
+      await saveRegistrationToFirestore(registration, session);
+    } catch (err) {
+      console.error("Failed to save registration to Firestore:", err.message);
+    }
+
+    // -------------------------------------------------------------
     // إرسال إيميل تأكيد للمسجّل عبر Resend
     // لو لسه معملتش حساب Resend أو مضفتش RESEND_API_KEY، السطر ده هيفشل بهدوء
     // ويسجل الخطأ في الـ Logs من غير ما يوقف باقي العملية
@@ -57,6 +78,27 @@ module.exports = async (req, res) => {
 
   return res.status(200).json({ received: true });
 };
+
+async function saveRegistrationToFirestore(registration, session) {
+  if (!admin.apps.length) {
+    console.log("FIREBASE_SERVICE_ACCOUNT_KEY مش موجود — تم تخطي الحفظ في Firestore.");
+    return;
+  }
+
+  const db = admin.firestore();
+
+  await db.collection("registrations").doc(session.id).set({
+    ...registration,
+    kidsCount: Number(registration.kidsCount || 0),
+    amountTotal: session.amount_total / 100,
+    currency: session.currency,
+    stripeSessionId: session.id,
+    paymentStatus: "paid",
+    createdAt: admin.firestore.FieldValue.serverTimestamp()
+  });
+
+  console.log("✅ Registration saved to Firestore:", session.id);
+}
 
 async function sendConfirmationEmail(registration, amountTotal) {
   if (!process.env.RESEND_API_KEY) {
