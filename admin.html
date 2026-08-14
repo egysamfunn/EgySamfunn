@@ -19,15 +19,18 @@
   }
   .admin-toolbar {
     display: flex; justify-content: space-between; align-items: center;
-    margin-bottom: 18px; flex-wrap: wrap; gap: 12px;
+    margin-bottom: 12px; flex-wrap: wrap; gap: 10px;
   }
   .admin-count { font-family: var(--font-display); font-size: 20px; color: var(--nile-deep); font-weight: 700; }
-  .admin-refresh, .admin-export {
-    background: var(--nile); color: #fff; border: none; border-radius: 999px;
-    padding: 10px 20px; font-family: var(--font-body); font-weight: 700; font-size: 13.5px;
-    cursor: pointer;
+  .admin-btns { display: flex; gap: 8px; flex-wrap: wrap; }
+  .admin-btn {
+    border: none; border-radius: 999px; padding: 9px 16px; font-family: var(--font-body);
+    font-weight: 700; font-size: 12.5px; cursor: pointer; color: #fff;
   }
-  .admin-export { background: var(--gold); }
+  .admin-btn.refresh { background: var(--nile); }
+  .admin-btn.fields { background: var(--ink-soft); }
+  .admin-btn.csv { background: var(--gold); }
+  .admin-btn.pdf { background: var(--nile-deep); }
   .admin-error { color: var(--error); font-weight: 700; margin-top: 10px; font-size: 13.5px; }
   .admin-empty {
     text-align: center; padding: 60px 20px; color: var(--ink-soft);
@@ -35,7 +38,23 @@
   }
   .admin-search {
     width: 100%; padding: 12px 16px; border: 2px solid var(--line); border-radius: 14px;
-    font-family: var(--font-body); font-size: 14px; margin-bottom: 18px; background: #fff;
+    font-family: var(--font-body); font-size: 14px; margin-bottom: 14px; background: #fff;
+  }
+
+  /* ---------- لوحة اختيار الحقول ---------- */
+  .fields-panel {
+    background: #fff; border-radius: 16px; box-shadow: var(--shadow);
+    padding: 16px 18px; margin-bottom: 16px;
+  }
+  .fields-panel__title {
+    font-family: var(--font-display); font-weight: 700; font-size: 15px;
+    color: var(--nile-deep); margin: 0 0 10px;
+  }
+  .fields-grid {
+    display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 8px;
+  }
+  .fields-grid label {
+    display: flex; align-items: center; gap: 6px; font-size: 13px; cursor: pointer;
   }
 
   /* ---------- كروت التسجيل ---------- */
@@ -56,8 +75,13 @@
     display: flex; align-items: center; justify-content: center;
     font-family: var(--font-display); font-weight: 700; font-size: 18px; flex-shrink: 0;
   }
-  .reg-card__name { font-family: var(--font-display); font-weight: 700; font-size: 17px; line-height: 1.25; }
+  .reg-card__name { font-family: var(--font-display); font-weight: 700; font-size: 17px; line-height: 1.25; flex: 1; }
   .reg-card__name small { display: block; font-family: var(--font-body); font-weight: 600; font-size: 12px; opacity: 0.85; margin-top: 2px; }
+  .reg-card__delete {
+    background: rgba(255,255,255,0.2); border: none; color: #fff; width: 32px; height: 32px;
+    border-radius: 50%; cursor: pointer; font-size: 15px; flex-shrink: 0;
+  }
+  .reg-card__delete:hover { background: rgba(230,90,70,0.6); }
   .reg-card__body { padding: 16px 18px; }
   .reg-row {
     display: flex; justify-content: space-between; align-items: center;
@@ -72,7 +96,7 @@
   .badge.member { background: rgba(23,179,163,0.15); color: var(--nile-deep); }
   .badge.nonmember { background: rgba(255,138,61,0.15); color: var(--gold); }
   .reg-card__amount {
-    background: var(--sand-deep); margin: 0 -18px -0px; padding: 12px 18px;
+    background: var(--sand-deep); padding: 12px 18px;
     display: flex; justify-content: space-between; align-items: center;
   }
   .reg-card__amount span { font-size: 12px; color: var(--ink-soft); font-weight: 700; }
@@ -98,11 +122,19 @@
   <div id="dataBox" hidden>
     <div class="admin-toolbar">
       <span class="admin-count" id="regCount"></span>
-      <div style="display:flex; gap:10px;">
-        <button class="admin-export" id="exportBtn">تصدير CSV</button>
-        <button class="admin-refresh" id="refreshBtn">تحديث</button>
+      <div class="admin-btns">
+        <button class="admin-btn fields" id="fieldsToggleBtn">اختيار الحقول</button>
+        <button class="admin-btn csv" id="exportBtn">تصدير CSV</button>
+        <button class="admin-btn pdf" id="pdfBtn">تحميل PDF</button>
+        <button class="admin-btn refresh" id="refreshBtn">تحديث</button>
       </div>
     </div>
+
+    <div class="fields-panel" id="fieldsPanel" hidden>
+      <p class="fields-panel__title">اختار الحقول اللي عايز تاخدها في التصدير (CSV / PDF)</p>
+      <div class="fields-grid" id="fieldsGrid"></div>
+    </div>
+
     <input type="text" class="admin-search" id="searchInput" placeholder="ابحث بالاسم أو الإيميل..." />
     <div class="reg-grid" id="regGrid"></div>
   </div>
@@ -120,10 +152,52 @@
   const regCount = document.getElementById("regCount");
   const refreshBtn = document.getElementById("refreshBtn");
   const exportBtn = document.getElementById("exportBtn");
+  const pdfBtn = document.getElementById("pdfBtn");
   const searchInput = document.getElementById("searchInput");
+  const fieldsToggleBtn = document.getElementById("fieldsToggleBtn");
+  const fieldsPanel = document.getElementById("fieldsPanel");
+  const fieldsGrid = document.getElementById("fieldsGrid");
 
   let currentPassword = "";
   let currentData = [];
+
+  // ---------- تعريف الحقول القابلة للتصدير ----------
+  const EXPORT_FIELDS = [
+    { key: "createdAt", label: "التاريخ", get: r => r.createdAt ? new Date(r.createdAt).toLocaleString("ar-EG", { dateStyle: "medium", timeStyle: "short" }) : "—" },
+    { key: "member1_name", label: "الاسم", get: r => r.member1_name || "" },
+    { key: "member1_email", label: "البريد الإلكتروني", get: r => r.member1_email || "" },
+    { key: "member1_phone", label: "الهاتف", get: r => r.member1_phone || "" },
+    { key: "member1_gender", label: "الجنس", get: r => r.member1_gender === "male" ? "ذكر" : r.member1_gender === "female" ? "أنثى" : "" },
+    { key: "registrationType", label: "نوع التسجيل", get: r => r.registrationType === "family" ? "عائلي" : "فردي" },
+    { key: "isMember", label: "العضوية", get: r => r.isMember === "yes" ? "عضو" : "غير عضو" },
+    { key: "kidsCount", label: "عدد الأطفال", get: r => r.hasKidsUnder16 === "yes" ? (r.kidsCount || 0) : "لا" },
+    { key: "childAges", label: "أعمار الأطفال", get: r => formatAges(r.childAges) },
+    { key: "member2_name", label: "اسم العضو الثاني", get: r => r.member2_name || "" },
+    { key: "member2_email", label: "إيميل العضو الثاني", get: r => r.member2_email || "" },
+    { key: "member2_phone", label: "هاتف العضو الثاني", get: r => r.member2_phone || "" },
+    { key: "amountTotal", label: "المبلغ", get: r => `${r.amountTotal} ${r.currency ? r.currency.toUpperCase() : "kr"}` }
+  ];
+  const DEFAULT_SELECTED = ["createdAt", "member1_name", "member1_email", "member1_phone", "registrationType", "isMember", "kidsCount", "amountTotal"];
+  let selectedFields = new Set(DEFAULT_SELECTED);
+
+  function buildFieldsPanel() {
+    fieldsGrid.innerHTML = EXPORT_FIELDS.map(f => `
+      <label>
+        <input type="checkbox" class="field-checkbox" value="${f.key}" ${selectedFields.has(f.key) ? "checked" : ""} />
+        ${f.label}
+      </label>
+    `).join("");
+    fieldsGrid.querySelectorAll(".field-checkbox").forEach(cb => {
+      cb.addEventListener("change", () => {
+        if (cb.checked) selectedFields.add(cb.value);
+        else selectedFields.delete(cb.value);
+      });
+    });
+  }
+
+  fieldsToggleBtn.addEventListener("click", () => {
+    fieldsPanel.hidden = !fieldsPanel.hidden;
+  });
 
   async function fetchRegistrations(password) {
     loginError.hidden = true;
@@ -135,6 +209,16 @@
     const body = await res.json();
     if (!res.ok) throw new Error(body.error || "حصل خطأ");
     return body.registrations;
+  }
+
+  async function deleteRegistration(id) {
+    const res = await fetch("/api/admin-delete-registration", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ password: currentPassword, id })
+    });
+    const body = await res.json();
+    if (!res.ok) throw new Error(body.error || "فشل المسح");
   }
 
   function escapeHtml(str) {
@@ -183,13 +267,14 @@
     }
 
     return `
-      <div class="reg-card">
+      <div class="reg-card" data-id="${escapeHtml(r.id)}">
         <div class="reg-card__top">
           <div class="reg-card__avatar">${initials(r.member1_name)}</div>
           <div class="reg-card__name">
             ${escapeHtml(r.member1_name)}
             <small>${escapeHtml(r.member1_gender === "male" ? "ذكر" : r.member1_gender === "female" ? "أنثى" : "")}</small>
           </div>
+          <button class="reg-card__delete" data-delete-id="${escapeHtml(r.id)}" title="مسح التسجيل">✕</button>
         </div>
         <div class="reg-card__body">
           ${rows}
@@ -211,6 +296,22 @@
       return;
     }
     regGrid.innerHTML = data.map(cardHtml).join("");
+
+    regGrid.querySelectorAll("[data-delete-id]").forEach(btn => {
+      btn.addEventListener("click", async () => {
+        const id = btn.dataset.deleteId;
+        const row = currentData.find(r => r.id === id);
+        const name = row ? row.member1_name : "";
+        if (!confirm(`متأكد إنك عايز تمسح تسجيل "${name}"؟ الإجراء ده نهائي ومش هينفع تتراجع عنه.`)) return;
+        try {
+          await deleteRegistration(id);
+          currentData = currentData.filter(r => r.id !== id);
+          applySearch();
+        } catch (err) {
+          alert(err.message);
+        }
+      });
+    });
   }
 
   function applySearch() {
@@ -234,6 +335,7 @@
       currentPassword = password;
       loginBox.hidden = true;
       dataBox.hidden = false;
+      buildFieldsPanel();
       renderCards(data);
     } catch (err) {
       loginError.textContent = err.message;
@@ -260,25 +362,70 @@
 
   searchInput.addEventListener("input", applySearch);
 
+  function getSelectedFieldDefs() {
+    return EXPORT_FIELDS.filter(f => selectedFields.has(f.key));
+  }
+
   exportBtn.addEventListener("click", () => {
     if (!currentData.length) return;
-    const headers = ["التاريخ", "الاسم", "الإيميل", "الهاتف", "النوع", "عضوية", "أطفال", "المبلغ"];
-    const rows = currentData.map(r => [
-      r.createdAt || "",
-      r.member1_name + (r.registrationType === "family" && r.member2_name ? " / " + r.member2_name : ""),
-      r.member1_email,
-      r.member1_phone,
-      r.registrationType === "family" ? "عائلي" : "فردي",
-      r.isMember === "yes" ? "عضو" : "غير عضو",
-      r.hasKidsUnder16 === "yes" ? (r.kidsCount || 0) : "لا",
-      r.amountTotal + " " + (r.currency || "kr")
-    ]);
+    const fields = getSelectedFieldDefs();
+    if (!fields.length) { alert("اختار حقل واحد على الأقل للتصدير."); return; }
+
+    const headers = fields.map(f => f.label);
+    const rows = currentData.map(r => fields.map(f => f.get(r)));
     const csv = "\uFEFF" + [headers, ...rows].map(row => row.map(cell => `"${String(cell).replace(/"/g, '""')}"`).join(",")).join("\n");
     const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
     const link = document.createElement("a");
     link.href = URL.createObjectURL(blob);
     link.download = "تسجيلات-التجمع.csv";
     link.click();
+  });
+
+  // ---------- تصدير PDF عن طريق صفحة طباعة ----------
+  // بنستخدم طباعة المتصفح بدل مكتبة PDF عادية، لأن دعم العربي فيها
+  // تلقائي 100% (المتصفح نفسه بيرندر الخط)، عكس أغلب مكتبات PDF
+  // اللي بتحتاج تضمين خط عربي يدويًا وغالبًا بتطلع النص متقطع.
+  pdfBtn.addEventListener("click", () => {
+    if (!currentData.length) return;
+    const fields = getSelectedFieldDefs();
+    if (!fields.length) { alert("اختار حقل واحد على الأقل للتصدير."); return; }
+
+    const rowsHtml = currentData.map(r => `
+      <tr>${fields.map(f => `<td>${escapeHtml(String(f.get(r)))}</td>`).join("")}</tr>
+    `).join("");
+
+    const printWindow = window.open("", "_blank");
+    printWindow.document.write(`
+      <!DOCTYPE html>
+      <html lang="ar" dir="rtl">
+      <head>
+        <meta charset="UTF-8" />
+        <title>تسجيلات التجمع — EGYSAMFUNN</title>
+        <style>
+          body { font-family: 'Segoe UI', Tahoma, sans-serif; padding: 24px; color: #222; }
+          h1 { font-size: 20px; margin-bottom: 4px; }
+          p.meta { color: #666; font-size: 12px; margin-top: 0; margin-bottom: 20px; }
+          table { width: 100%; border-collapse: collapse; font-size: 11px; }
+          th, td { border: 1px solid #ccc; padding: 6px 8px; text-align: right; }
+          th { background: #f0f0f0; }
+          @media print {
+            body { padding: 0; }
+          }
+        </style>
+      </head>
+      <body>
+        <h1>تسجيلات التجمع — EGYSAMFUNN</h1>
+        <p class="meta">تاريخ التصدير: ${new Date().toLocaleString("ar-EG")} — عدد التسجيلات: ${currentData.length}</p>
+        <table>
+          <thead><tr>${fields.map(f => `<th>${f.label}</th>`).join("")}</tr></thead>
+          <tbody>${rowsHtml}</tbody>
+        </table>
+      </body>
+      </html>
+    `);
+    printWindow.document.close();
+    printWindow.focus();
+    setTimeout(() => printWindow.print(), 400);
   });
 </script>
 
