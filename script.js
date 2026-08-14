@@ -169,11 +169,40 @@
     return { valid: true, birthdates, ages };
   }
 
+  const FIELD_LABELS = {
+    isMember: "هل أنت عضو",
+    registrationType: "نوع التسجيل",
+    member1_name: "اسم العضو",
+    member1_gender: "جنس العضو",
+    member1_email: "بريد العضو الإلكتروني",
+    member1_phone: "هاتف العضو",
+    member2_name: "اسم العضو الثاني",
+    member2_gender: "جنس العضو الثاني",
+    member2_email: "بريد العضو الثاني",
+    member2_phone: "هاتف العضو الثاني",
+    hasKidsUnder16: "سؤال الأطفال",
+    kidsCount: "عدد الأطفال"
+  };
+
+  function findInvalidFieldsMessage() {
+    const invalid = Array.from(form.elements).filter(
+      el => typeof el.checkValidity === "function" && !el.checkValidity()
+    );
+    if (!invalid.length) return null;
+    const names = invalid.map(el => {
+      const base = FIELD_LABELS[el.name] || el.name || el.id || "حقل غير معروف";
+      return el.offsetParent === null ? `${base} (حقل مختفي — تواصل مع منظّمي الفورم)` : base;
+    });
+    return "فيه مشكلة في: " + [...new Set(names)].join("، ");
+  }
+
   form.addEventListener("submit", async function (e) {
     e.preventDefault();
     formError.hidden = true;
 
     if (!form.checkValidity()) {
+      const diagnosticMessage = findInvalidFieldsMessage();
+      showError(diagnosticMessage || "فيه بيانات ناقصة أو غير صحيحة في الفورم.");
       form.reportValidity();
       return;
     }
