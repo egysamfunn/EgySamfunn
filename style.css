@@ -17,6 +17,12 @@
 
 * { box-sizing: border-box; }
 
+/* مهم جدًا: بعض العناصر (زي .field) بتحدد display:block بشكل صريح،
+   وده بيلغي تأثير خاصية hidden الطبيعية في المتصفح (لأن قاعدة المتصفح
+   الافتراضية [hidden]{display:none} أضعف من أي قاعدة CSS بتاعتنا بتحدد
+   display صراحة). القاعدة دي بتضمن إن hidden يفوز دايمًا مهما كان. */
+[hidden] { display: none !important; }
+
 body {
   margin: 0;
   background: var(--sand);
