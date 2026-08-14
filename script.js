@@ -109,7 +109,11 @@
     kidsCountInput.required = hasKids;
 
     if (!hasKids) {
-      kidsCountInput.value = 0;
+      // نسيب الحقل فاضي تمامًا (مش نحط فيه 0) عشان متعارضش مع شرط
+      // "min=1" بتاعه — لو حطينا 0 والحقل مختفي، الفورم كان بيرفض
+      // الإرسال بصمت من غير ما يوري أي رسالة، لأن المتصفح مش بيقدر
+      // يعرض تحذير على حقل مش ظاهر أصلاً.
+      kidsCountInput.value = "";
       childrenFields.innerHTML = "";
     } else {
       if (!kidsCountInput.value || Number(kidsCountInput.value) < 1) kidsCountInput.value = 1;
