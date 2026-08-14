@@ -127,21 +127,47 @@
       </label>
 
       <label class="field" id="kidsCountField" hidden>
-        <span class="field__label">عدد الأطفال تحت 16 سنة</span>
-        <input type="number" name="kidsCount" min="0" max="10" value="0" />
+        <span class="field__label">عدد الأطفال تحت 16 سنة <em>*</em></span>
+        <input type="number" name="kidsCount" id="kidsCount" min="1" max="10" value="1" />
       </label>
+
+      <div id="childrenFields"></div>
     </fieldset>
+
+    <template id="childFieldTemplate">
+      <div class="child-block">
+        <p class="child-block__title"></p>
+        <label class="field">
+          <span class="field__label">تاريخ ميلاد الطفل <em>*</em></span>
+          <input type="date" class="child-birthdate" required />
+        </label>
+        <p class="child-block__age" hidden></p>
+        <label class="field child-confirm-field" hidden>
+          <span class="field__label">أكّد عمر الطفل بالسنوات (اكتب الرقم اللي ظهر فوق) <em>*</em></span>
+          <input type="number" class="child-age-confirm" min="0" max="17" required />
+          <span class="field__hint child-confirm-error" hidden>الرقم مش مطابق للعمر المحسوب، تأكد من تاريخ الميلاد أو الرقم.</span>
+        </label>
+      </div>
+    </template>
 
     <fieldset class="section">
       <legend class="section__title">الشروط والأحكام</legend>
       <div class="terms-box">
-        أرغب في المشاركة في التجمع الصيفي (أغسطس) مع جمعية المجتمع المصري في النرويج.
-        أتعهد بأن ألتزم بمبادئ وقوانين وأعراف الجمعية.
-        التسجيل مرتبط بدفع رسوم الاشتراك و المبلغ غير قابل للاسترداد.
+        يسعدنا انضمامك إلينا في التجمع الصيفي (أغسطس) 🌞 مع أسرة المجتمع المصري في النرويج.
+        كل ما نطلبه منك أن تكون معنا بروح طيبة، وأن تراعي أجواء الجمعية وقيمها.
+        تساهم رسوم الاشتراك في تجهيز يوم جميل للجميع، وبعد إتمام الدفع يصبح المبلغ نهائيًا — فيرجى التأكد من بياناتك قبل الإتمام 🙏
       </div>
       <label class="checkbox">
         <input type="checkbox" name="agreeTerms" id="agreeTerms" required />
-        <span>موافق على كل الشروط والقوانين السابقة وأرغب في الانضمام <em>*</em></span>
+        <span>أوافق على ما سبق، ويسعدني الانضمام <em>*</em></span>
+      </label>
+
+      <div class="terms-box" style="margin-top: 14px;">
+        بياناتك (الاسم، البريد الإلكتروني، رقم الهاتف) تُستخدم فقط لإتمام تسجيلك في هذا التجمع، وتُحفظ لدى مزوّد الدفع الآمن Stripe لهذا الغرض تحديدًا. لا تُشارك بياناتك مع أي جهة أخرى.
+      </div>
+      <label class="checkbox">
+        <input type="checkbox" name="agreeDataUse" id="agreeDataUse" required />
+        <span>أوافق على استخدام بياناتي كما هو موضّح أعلاه <em>*</em></span>
       </label>
     </fieldset>
 

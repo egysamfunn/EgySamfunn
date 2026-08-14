@@ -8,7 +8,7 @@
 <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800&family=Baloo+Bhaijaan+2:wght@500;600;700;800&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="style.css" />
 <style>
-  .admin-page { max-width: 1000px; }
+  .admin-page { max-width: 1100px; }
   .admin-login {
     background: #fff; border-radius: var(--radius); box-shadow: var(--shadow);
     padding: 40px 32px; max-width: 380px; margin: 60px auto; text-align: center;
@@ -28,25 +28,55 @@
     cursor: pointer;
   }
   .admin-export { background: var(--gold); }
-  table.reg-table {
-    width: 100%; border-collapse: collapse; background: #fff; border-radius: var(--radius);
-    overflow: hidden; box-shadow: var(--shadow); font-size: 13.5px;
+  .admin-error { color: var(--error); font-weight: 700; margin-top: 10px; font-size: 13.5px; }
+  .admin-empty {
+    text-align: center; padding: 60px 20px; color: var(--ink-soft);
+    background: #fff; border-radius: var(--radius); box-shadow: var(--shadow);
   }
-  .reg-table th {
-    background: var(--nile); color: #fff; padding: 12px 10px; text-align: right;
-    font-family: var(--font-body); font-weight: 700; position: sticky; top: 0;
+  .admin-search {
+    width: 100%; padding: 12px 16px; border: 2px solid var(--line); border-radius: 14px;
+    font-family: var(--font-body); font-size: 14px; margin-bottom: 18px; background: #fff;
   }
-  .reg-table td { padding: 11px 10px; border-bottom: 1px solid var(--line); vertical-align: top; }
-  .reg-table tr:last-child td { border-bottom: none; }
-  .reg-table tr:hover { background: var(--sand); }
+
+  /* ---------- كروت التسجيل ---------- */
+  .reg-grid {
+    display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 18px;
+  }
+  .reg-card {
+    background: #fff; border-radius: 20px; box-shadow: var(--shadow);
+    overflow: hidden; border: 1px solid var(--line);
+  }
+  .reg-card__top {
+    background: linear-gradient(135deg, var(--nile), var(--nile-deep));
+    color: #fff; padding: 16px 18px; display: flex; align-items: center; gap: 12px;
+  }
+  .reg-card__avatar {
+    width: 44px; height: 44px; border-radius: 50%; background: rgba(255,255,255,0.25);
+    display: flex; align-items: center; justify-content: center;
+    font-family: var(--font-display); font-weight: 700; font-size: 18px; flex-shrink: 0;
+  }
+  .reg-card__name { font-family: var(--font-display); font-weight: 700; font-size: 17px; line-height: 1.25; }
+  .reg-card__name small { display: block; font-family: var(--font-body); font-weight: 600; font-size: 12px; opacity: 0.85; margin-top: 2px; }
+  .reg-card__body { padding: 16px 18px; }
+  .reg-row {
+    display: flex; justify-content: space-between; align-items: center;
+    padding: 7px 0; border-bottom: 1px dashed var(--line); font-size: 13.5px;
+  }
+  .reg-row:last-child { border-bottom: none; }
+  .reg-row__label { color: var(--ink-soft); font-weight: 600; }
+  .reg-row__value { font-weight: 700; color: var(--ink); text-align: left; }
   .badge {
-    display: inline-block; padding: 3px 10px; border-radius: 999px; font-size: 11.5px; font-weight: 700;
+    display: inline-block; padding: 3px 12px; border-radius: 999px; font-size: 11.5px; font-weight: 700;
   }
   .badge.member { background: rgba(23,179,163,0.15); color: var(--nile-deep); }
   .badge.nonmember { background: rgba(255,138,61,0.15); color: var(--gold); }
-  .table-wrap { overflow-x: auto; }
-  .admin-error { color: var(--error); font-weight: 700; margin-top: 10px; font-size: 13.5px; }
-  .admin-empty { text-align: center; padding: 60px 20px; color: var(--ink-soft); }
+  .reg-card__amount {
+    background: var(--sand-deep); margin: 0 -18px -0px; padding: 12px 18px;
+    display: flex; justify-content: space-between; align-items: center;
+  }
+  .reg-card__amount span { font-size: 12px; color: var(--ink-soft); font-weight: 700; }
+  .reg-card__amount strong { font-family: var(--font-display); font-size: 20px; color: var(--nile-deep); }
 </style>
 </head>
 <body>
@@ -73,23 +103,8 @@
         <button class="admin-refresh" id="refreshBtn">تحديث</button>
       </div>
     </div>
-    <div class="table-wrap">
-      <table class="reg-table" id="regTable">
-        <thead>
-          <tr>
-            <th>التاريخ</th>
-            <th>الاسم</th>
-            <th>الإيميل</th>
-            <th>الهاتف</th>
-            <th>النوع</th>
-            <th>عضوية</th>
-            <th>أطفال</th>
-            <th>المبلغ</th>
-          </tr>
-        </thead>
-        <tbody id="regTableBody"></tbody>
-      </table>
-    </div>
+    <input type="text" class="admin-search" id="searchInput" placeholder="ابحث بالاسم أو الإيميل..." />
+    <div class="reg-grid" id="regGrid"></div>
   </div>
 
   <footer class="footer"><p>EGYSAMFUNN — لوحة إدارية داخلية</p></footer>
@@ -101,10 +116,11 @@
   const passwordInput = document.getElementById("passwordInput");
   const loginBtn = document.getElementById("loginBtn");
   const loginError = document.getElementById("loginError");
-  const regTableBody = document.getElementById("regTableBody");
+  const regGrid = document.getElementById("regGrid");
   const regCount = document.getElementById("regCount");
   const refreshBtn = document.getElementById("refreshBtn");
   const exportBtn = document.getElementById("exportBtn");
+  const searchInput = document.getElementById("searchInput");
 
   let currentPassword = "";
   let currentData = [];
@@ -121,31 +137,91 @@
     return body.registrations;
   }
 
-  function renderTable(data) {
-    currentData = data;
-    regCount.textContent = `عدد التسجيلات: ${data.length}`;
-    regTableBody.innerHTML = data.map(r => `
-      <tr>
-        <td>${r.createdAt ? new Date(r.createdAt).toLocaleString("ar-EG", { dateStyle: "short", timeStyle: "short" }) : "—"}</td>
-        <td>${escapeHtml(r.member1_name)}${r.registrationType === "family" && r.member2_name ? "<br>" + escapeHtml(r.member2_name) : ""}</td>
-        <td>${escapeHtml(r.member1_email)}</td>
-        <td>${escapeHtml(r.member1_phone)}</td>
-        <td>${r.registrationType === "family" ? "عائلي" : "فردي"}</td>
-        <td><span class="badge ${r.isMember === "yes" ? "member" : "nonmember"}">${r.isMember === "yes" ? "عضو" : "غير عضو"}</span></td>
-        <td>${r.hasKidsUnder16 === "yes" ? (r.kidsCount || 0) : "لا"}</td>
-        <td>${r.amountTotal} ${r.currency ? r.currency.toUpperCase() : "kr"}</td>
-      </tr>
-    `).join("");
-
-    if (data.length === 0) {
-      regTableBody.innerHTML = `<tr><td colspan="8" class="admin-empty">لسه مفيش تسجيلات</td></tr>`;
-    }
-  }
-
   function escapeHtml(str) {
     const div = document.createElement("div");
     div.textContent = str || "";
     return div.innerHTML;
+  }
+
+  function initials(name) {
+    const parts = (name || "").trim().split(/\s+/);
+    return (parts[0]?.[0] || "؟") + (parts[1]?.[0] || "");
+  }
+
+  function formatAges(childAgesJson) {
+    try {
+      const ages = JSON.parse(childAgesJson);
+      if (!Array.isArray(ages) || !ages.length) return "";
+      return ages.join("، ") + " سنة";
+    } catch {
+      return "";
+    }
+  }
+
+  function cardHtml(r) {
+    const typeLabel = r.registrationType === "family" ? "تسجيل عائلي" : "تسجيل فردي";
+    const memberBadge = r.isMember === "yes"
+      ? `<span class="badge member">عضو</span>`
+      : `<span class="badge nonmember">غير عضو</span>`;
+    const dateStr = r.createdAt ? new Date(r.createdAt).toLocaleString("ar-EG", { dateStyle: "medium", timeStyle: "short" }) : "—";
+
+    let rows = `
+      <div class="reg-row"><span class="reg-row__label">البريد الإلكتروني</span><span class="reg-row__value">${escapeHtml(r.member1_email)}</span></div>
+      <div class="reg-row"><span class="reg-row__label">الهاتف</span><span class="reg-row__value">${escapeHtml(r.member1_phone)}</span></div>
+      <div class="reg-row"><span class="reg-row__label">نوع التسجيل</span><span class="reg-row__value">${typeLabel}</span></div>
+      <div class="reg-row"><span class="reg-row__label">العضوية</span><span class="reg-row__value">${memberBadge}</span></div>
+      <div class="reg-row"><span class="reg-row__label">أطفال تحت 16</span><span class="reg-row__value">${r.hasKidsUnder16 === "yes" ? (r.kidsCount || 0) : "لا"}</span></div>
+      ${r.hasKidsUnder16 === "yes" && r.childAges ? `<div class="reg-row"><span class="reg-row__label">أعمار الأطفال</span><span class="reg-row__value">${escapeHtml(formatAges(r.childAges))}</span></div>` : ""}
+      <div class="reg-row"><span class="reg-row__label">تاريخ التسجيل</span><span class="reg-row__value">${dateStr}</span></div>
+    `;
+
+    if (r.registrationType === "family" && r.member2_name) {
+      rows += `
+      <div class="reg-row"><span class="reg-row__label">العضو الثاني</span><span class="reg-row__value">${escapeHtml(r.member2_name)}</span></div>
+      <div class="reg-row"><span class="reg-row__label">إيميل العضو الثاني</span><span class="reg-row__value">${escapeHtml(r.member2_email)}</span></div>
+      `;
+    }
+
+    return `
+      <div class="reg-card">
+        <div class="reg-card__top">
+          <div class="reg-card__avatar">${initials(r.member1_name)}</div>
+          <div class="reg-card__name">
+            ${escapeHtml(r.member1_name)}
+            <small>${escapeHtml(r.member1_gender === "male" ? "ذكر" : r.member1_gender === "female" ? "أنثى" : "")}</small>
+          </div>
+        </div>
+        <div class="reg-card__body">
+          ${rows}
+        </div>
+        <div class="reg-card__amount">
+          <span>المبلغ المدفوع</span>
+          <strong>${r.amountTotal} ${r.currency ? r.currency.toUpperCase() : "kr"}</strong>
+        </div>
+      </div>
+    `;
+  }
+
+  function renderCards(data) {
+    currentData = data;
+    regCount.textContent = `عدد التسجيلات: ${data.length}`;
+
+    if (data.length === 0) {
+      regGrid.innerHTML = `<div class="admin-empty" style="grid-column: 1 / -1;">لسه مفيش تسجيلات</div>`;
+      return;
+    }
+    regGrid.innerHTML = data.map(cardHtml).join("");
+  }
+
+  function applySearch() {
+    const q = searchInput.value.trim().toLowerCase();
+    if (!q) { renderCards(currentData); return; }
+    const filtered = currentData.filter(r =>
+      (r.member1_name || "").toLowerCase().includes(q) ||
+      (r.member1_email || "").toLowerCase().includes(q) ||
+      (r.member2_name || "").toLowerCase().includes(q)
+    );
+    renderCards(filtered);
   }
 
   loginBtn.addEventListener("click", async () => {
@@ -158,7 +234,7 @@
       currentPassword = password;
       loginBox.hidden = true;
       dataBox.hidden = false;
-      renderTable(data);
+      renderCards(data);
     } catch (err) {
       loginError.textContent = err.message;
       loginError.hidden = false;
@@ -175,11 +251,14 @@
   refreshBtn.addEventListener("click", async () => {
     try {
       const data = await fetchRegistrations(currentPassword);
-      renderTable(data);
+      searchInput.value = "";
+      renderCards(data);
     } catch (err) {
       alert(err.message);
     }
   });
+
+  searchInput.addEventListener("input", applySearch);
 
   exportBtn.addEventListener("click", () => {
     if (!currentData.length) return;
