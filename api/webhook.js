@@ -137,18 +137,26 @@ async function sendConfirmationEmail(registration, amountTotal) {
     </div>
   `;
 
+  const emailPayload = {
+    from: process.env.FROM_EMAIL || "EGYSAMFUNN <onboarding@resend.dev>",
+    to: registration.member1_email,
+    subject: "تم تأكيد تسجيلكم — تجمع أغسطس الصيفي",
+    html: emailHtml
+  };
+
+  // لو حاطط ADMIN_NOTIFY_EMAIL في Vercel، هتوصلك نسخة مطابقة من كل إيميل تأكيد
+  // بيتبعت لأي مسجّل، عن طريق BCC (يعني المسجّل مش هيشوف إيميلك في النسخة بتاعته)
+  if (process.env.ADMIN_NOTIFY_EMAIL) {
+    emailPayload.bcc = [process.env.ADMIN_NOTIFY_EMAIL];
+  }
+
   const response = await fetch("https://api.resend.com/emails", {
     method: "POST",
     headers: {
       "Authorization": `Bearer ${process.env.RESEND_API_KEY}`,
       "Content-Type": "application/json"
     },
-    body: JSON.stringify({
-      from: process.env.FROM_EMAIL || "EGYSAMFUNN <onboarding@resend.dev>",
-      to: registration.member1_email,
-      subject: "تم تأكيد تسجيلكم — تجمع أغسطس الصيفي",
-      html: emailHtml
-    })
+    body: JSON.stringify(emailPayload)
   });
 
   if (!response.ok) {
