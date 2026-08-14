@@ -2,8 +2,9 @@
   "name": "eid-registration",
   "version": "1.0.0",
   "private": true,
-  "description": "فورم تسجيل تجمع عيد الأضحي مرتبط بـ Stripe — للنشر على Vercel",
+  "description": "فورم تسجيل تجمع أغسطس الصيفي مرتبط بـ Stripe وFirestore — للنشر على Vercel",
   "dependencies": {
-    "stripe": "^16.0.0"
+    "stripe": "^16.0.0",
+    "firebase-admin": "^12.7.0"
   }
 }
