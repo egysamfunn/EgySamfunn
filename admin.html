@@ -1,0 +1,207 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>لوحة التسجيلات — EGYSAMFUNN</title>
+<meta name="robots" content="noindex, nofollow" />
+<link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800&family=Baloo+Bhaijaan+2:wght@500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css" />
+<style>
+  .admin-page { max-width: 1000px; }
+  .admin-login {
+    background: #fff; border-radius: var(--radius); box-shadow: var(--shadow);
+    padding: 40px 32px; max-width: 380px; margin: 60px auto; text-align: center;
+  }
+  .admin-login input {
+    width: 100%; padding: 14px; border: 2px solid var(--line); border-radius: 14px;
+    font-family: var(--font-body); font-size: 16px; margin: 16px 0; text-align: center;
+  }
+  .admin-toolbar {
+    display: flex; justify-content: space-between; align-items: center;
+    margin-bottom: 18px; flex-wrap: wrap; gap: 12px;
+  }
+  .admin-count { font-family: var(--font-display); font-size: 20px; color: var(--nile-deep); font-weight: 700; }
+  .admin-refresh, .admin-export {
+    background: var(--nile); color: #fff; border: none; border-radius: 999px;
+    padding: 10px 20px; font-family: var(--font-body); font-weight: 700; font-size: 13.5px;
+    cursor: pointer;
+  }
+  .admin-export { background: var(--gold); }
+  table.reg-table {
+    width: 100%; border-collapse: collapse; background: #fff; border-radius: var(--radius);
+    overflow: hidden; box-shadow: var(--shadow); font-size: 13.5px;
+  }
+  .reg-table th {
+    background: var(--nile); color: #fff; padding: 12px 10px; text-align: right;
+    font-family: var(--font-body); font-weight: 700; position: sticky; top: 0;
+  }
+  .reg-table td { padding: 11px 10px; border-bottom: 1px solid var(--line); vertical-align: top; }
+  .reg-table tr:last-child td { border-bottom: none; }
+  .reg-table tr:hover { background: var(--sand); }
+  .badge {
+    display: inline-block; padding: 3px 10px; border-radius: 999px; font-size: 11.5px; font-weight: 700;
+  }
+  .badge.member { background: rgba(23,179,163,0.15); color: var(--nile-deep); }
+  .badge.nonmember { background: rgba(255,138,61,0.15); color: var(--gold); }
+  .table-wrap { overflow-x: auto; }
+  .admin-error { color: var(--error); font-weight: 700; margin-top: 10px; font-size: 13.5px; }
+  .admin-empty { text-align: center; padding: 60px 20px; color: var(--ink-soft); }
+</style>
+</head>
+<body>
+
+<div class="page admin-page">
+  <header class="hero" style="padding: 32px 28px;">
+    <p class="hero__eyebrow">EGYSAMFUNN</p>
+    <h1 class="hero__title" style="font-size: 26px;">لوحة تسجيلات التجمع</h1>
+  </header>
+
+  <div id="loginBox" class="admin-login">
+    <p style="font-family: var(--font-display); font-size: 20px; color: var(--nile-deep); margin: 0 0 4px;">تسجيل الدخول</p>
+    <p style="color: var(--ink-soft); font-size: 13.5px; margin: 0;">أدخل كلمة المرور لعرض التسجيلات</p>
+    <input type="password" id="passwordInput" placeholder="كلمة المرور" autocomplete="off" />
+    <button class="submit-btn" id="loginBtn">دخول</button>
+    <p class="admin-error" id="loginError" hidden></p>
+  </div>
+
+  <div id="dataBox" hidden>
+    <div class="admin-toolbar">
+      <span class="admin-count" id="regCount"></span>
+      <div style="display:flex; gap:10px;">
+        <button class="admin-export" id="exportBtn">تصدير CSV</button>
+        <button class="admin-refresh" id="refreshBtn">تحديث</button>
+      </div>
+    </div>
+    <div class="table-wrap">
+      <table class="reg-table" id="regTable">
+        <thead>
+          <tr>
+            <th>التاريخ</th>
+            <th>الاسم</th>
+            <th>الإيميل</th>
+            <th>الهاتف</th>
+            <th>النوع</th>
+            <th>عضوية</th>
+            <th>أطفال</th>
+            <th>المبلغ</th>
+          </tr>
+        </thead>
+        <tbody id="regTableBody"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <footer class="footer"><p>EGYSAMFUNN — لوحة إدارية داخلية</p></footer>
+</div>
+
+<script>
+  const loginBox = document.getElementById("loginBox");
+  const dataBox = document.getElementById("dataBox");
+  const passwordInput = document.getElementById("passwordInput");
+  const loginBtn = document.getElementById("loginBtn");
+  const loginError = document.getElementById("loginError");
+  const regTableBody = document.getElementById("regTableBody");
+  const regCount = document.getElementById("regCount");
+  const refreshBtn = document.getElementById("refreshBtn");
+  const exportBtn = document.getElementById("exportBtn");
+
+  let currentPassword = "";
+  let currentData = [];
+
+  async function fetchRegistrations(password) {
+    loginError.hidden = true;
+    const res = await fetch("/api/admin-registrations", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ password })
+    });
+    const body = await res.json();
+    if (!res.ok) throw new Error(body.error || "حصل خطأ");
+    return body.registrations;
+  }
+
+  function renderTable(data) {
+    currentData = data;
+    regCount.textContent = `عدد التسجيلات: ${data.length}`;
+    regTableBody.innerHTML = data.map(r => `
+      <tr>
+        <td>${r.createdAt ? new Date(r.createdAt).toLocaleString("ar-EG", { dateStyle: "short", timeStyle: "short" }) : "—"}</td>
+        <td>${escapeHtml(r.member1_name)}${r.registrationType === "family" && r.member2_name ? "<br>" + escapeHtml(r.member2_name) : ""}</td>
+        <td>${escapeHtml(r.member1_email)}</td>
+        <td>${escapeHtml(r.member1_phone)}</td>
+        <td>${r.registrationType === "family" ? "عائلي" : "فردي"}</td>
+        <td><span class="badge ${r.isMember === "yes" ? "member" : "nonmember"}">${r.isMember === "yes" ? "عضو" : "غير عضو"}</span></td>
+        <td>${r.hasKidsUnder16 === "yes" ? (r.kidsCount || 0) : "لا"}</td>
+        <td>${r.amountTotal} ${r.currency ? r.currency.toUpperCase() : "kr"}</td>
+      </tr>
+    `).join("");
+
+    if (data.length === 0) {
+      regTableBody.innerHTML = `<tr><td colspan="8" class="admin-empty">لسه مفيش تسجيلات</td></tr>`;
+    }
+  }
+
+  function escapeHtml(str) {
+    const div = document.createElement("div");
+    div.textContent = str || "";
+    return div.innerHTML;
+  }
+
+  loginBtn.addEventListener("click", async () => {
+    const password = passwordInput.value.trim();
+    if (!password) return;
+    loginBtn.disabled = true;
+    loginBtn.textContent = "جاري التحقق...";
+    try {
+      const data = await fetchRegistrations(password);
+      currentPassword = password;
+      loginBox.hidden = true;
+      dataBox.hidden = false;
+      renderTable(data);
+    } catch (err) {
+      loginError.textContent = err.message;
+      loginError.hidden = false;
+    } finally {
+      loginBtn.disabled = false;
+      loginBtn.textContent = "دخول";
+    }
+  });
+
+  passwordInput.addEventListener("keydown", (e) => {
+    if (e.key === "Enter") loginBtn.click();
+  });
+
+  refreshBtn.addEventListener("click", async () => {
+    try {
+      const data = await fetchRegistrations(currentPassword);
+      renderTable(data);
+    } catch (err) {
+      alert(err.message);
+    }
+  });
+
+  exportBtn.addEventListener("click", () => {
+    if (!currentData.length) return;
+    const headers = ["التاريخ", "الاسم", "الإيميل", "الهاتف", "النوع", "عضوية", "أطفال", "المبلغ"];
+    const rows = currentData.map(r => [
+      r.createdAt || "",
+      r.member1_name + (r.registrationType === "family" && r.member2_name ? " / " + r.member2_name : ""),
+      r.member1_email,
+      r.member1_phone,
+      r.registrationType === "family" ? "عائلي" : "فردي",
+      r.isMember === "yes" ? "عضو" : "غير عضو",
+      r.hasKidsUnder16 === "yes" ? (r.kidsCount || 0) : "لا",
+      r.amountTotal + " " + (r.currency || "kr")
+    ]);
+    const csv = "\uFEFF" + [headers, ...rows].map(row => row.map(cell => `"${String(cell).replace(/"/g, '""')}"`).join(",")).join("\n");
+    const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+    const link = document.createElement("a");
+    link.href = URL.createObjectURL(blob);
+    link.download = "تسجيلات-التجمع.csv";
+    link.click();
+  });
+</script>
+
+</body>
+</html>
