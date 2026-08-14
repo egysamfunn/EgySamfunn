@@ -53,6 +53,7 @@ module.exports = async (req, res) => {
         isMember: data.isMember || "",
         hasKidsUnder16: data.hasKidsUnder16 || "",
         kidsCount: data.kidsCount || 0,
+        childAges: data.childAges || "",
         amountTotal: data.amountTotal || 0,
         currency: data.currency || "",
         paymentStatus: data.paymentStatus || "",

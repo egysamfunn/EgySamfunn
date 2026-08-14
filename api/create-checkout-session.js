@@ -22,7 +22,7 @@ module.exports = async (req, res) => {
     // -------- تحقق أساسي من البيانات المطلوبة --------
     const required = [
       "isMember", "registrationType", "member1_name", "member1_gender",
-      "member1_email", "member1_phone", "hasKidsUnder16", "agreeTerms"
+      "member1_email", "member1_phone", "hasKidsUnder16", "agreeTerms", "agreeDataUse"
     ];
     for (const field of required) {
       if (!data[field] && data[field] !== false) {
@@ -32,10 +32,31 @@ module.exports = async (req, res) => {
     if (data.agreeTerms !== true && data.agreeTerms !== "true") {
       return res.status(400).json({ error: "لازم توافق على الشروط والأحكام." });
     }
+    if (data.agreeDataUse !== true && data.agreeDataUse !== "true") {
+      return res.status(400).json({ error: "لازم توافق على استخدام بياناتك." });
+    }
     if (data.registrationType === "family") {
       const familyRequired = ["member2_name", "member2_gender", "member2_email", "member2_phone"];
       for (const field of familyRequired) {
         if (!data[field]) return res.status(400).json({ error: `الحقل الناقص: ${field}` });
+      }
+    }
+
+    // -------- تحقق من بيانات الأطفال (تاريخ الميلاد والعمر المؤكد) --------
+    if (data.hasKidsUnder16 === "yes") {
+      if (!data.childBirthdates || !data.childAges) {
+        return res.status(400).json({ error: "بيانات تاريخ ميلاد الأطفال ناقصة." });
+      }
+      let birthdates, ages;
+      try {
+        birthdates = JSON.parse(data.childBirthdates);
+        ages = JSON.parse(data.childAges);
+      } catch {
+        return res.status(400).json({ error: "صيغة بيانات الأطفال غير صحيحة." });
+      }
+      const expectedCount = Number(data.kidsCount || 0);
+      if (!Array.isArray(birthdates) || !Array.isArray(ages) || birthdates.length !== expectedCount || ages.length !== expectedCount) {
+        return res.status(400).json({ error: "عدد تواريخ الميلاد المُدخلة لا يطابق عدد الأطفال." });
       }
     }
 
@@ -71,7 +92,9 @@ module.exports = async (req, res) => {
       member2_email: String(data.member2_email || ""),
       member2_phone: String(data.member2_phone || ""),
       hasKidsUnder16: String(data.hasKidsUnder16),
-      kidsCount: String(data.kidsCount || 0)
+      kidsCount: String(data.kidsCount || 0),
+      childBirthdates: String(data.childBirthdates || ""),
+      childAges: String(data.childAges || "")
     };
 
     const session = await stripe.checkout.sessions.create({
